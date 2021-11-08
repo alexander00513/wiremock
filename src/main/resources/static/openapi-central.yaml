@@ -1,0 +1,872 @@
+openapi: 3.0.1
+info:
+  version: "0.0.1"
+  title: "Central Service API"
+  termsOfService: ""
+  description: "This document describes Central Service API provided to be used by back office applications"
+tags:
+  - name: "Clients API"
+    description: "API used by on-boarding process"
+  - name: "GL API"
+    description: "API used by accountant applications"
+  - name: "Providers API"
+    description: "API used by providers"
+  - name: "AML API"
+    description: "API used by AML service"
+servers:
+  - url: "https://api.dev.zaptain.com/core-banking-central"
+    description: "core-banking-central"
+
+paths:
+
+  /v1/clients/{clientUuid}/accounts:
+    parameters:
+      - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/parameters/ClientUuid"
+    get:
+      tags:
+        - "Clients API"
+      summary: "The list of ALL accounts opened for a particular Client"
+      parameters:
+        - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/parameters/XPageFirstUuid"
+        - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/parameters/XPageLimit"
+      responses:
+        200:
+          description: "Success"
+          headers:
+            X-Page-First-Uuid:
+              $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/headers/X-Page-First-Uuid"
+            X-Page-Limit:
+              $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/headers/X-Page-Limit"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/schemas/ClientAccountData"
+        403:
+          description: "Access denied\n\n
+          | Code | Message |\n
+          |------|---------|\n
+          | 1403 | Access denied|\n
+          "
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - "Clients API"
+      summary: "Open a new client account"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                accounts:
+                  type: array
+                  items:
+                    $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/schemas/ClientAccountRequest"
+      responses:
+        201:
+          description: "accounts created"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/schemas/ClientAccountData"
+        400:
+          description: "Validation error\n\n
+          | Code | Message |\n
+          |------|---------|\n
+          | 1100 | Required value not found: [FIELDNAME]|\n
+          | 1110 | Wrong format: [FIELDNAME]|\n
+          "
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+        403:
+          description: "Access denied\n\n
+          | Code | Message |\n
+          |------|---------|\n
+          | 1403 | Access denied|\n
+          "
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+        422:
+          description: "Processing error\n\n
+          | Code | Message |\n
+          |------|---------|\n
+          | 1200 | Unknown product code: [PRODUCT_CODE]|\n
+          | 1210 | Unsupported currency code: [CURRENCY_CODE]|\n
+          | 1220 | Unknown parent: [PARENT_UUID] |\n
+          | 1230 | Unable to link with parent: [PARENT_UUID] |\n
+          "
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+
+  /v1/gl/accounts/list:
+    post:
+      tags:
+      - "GL API"
+      summary: "Get accounts according to list of its UUIDs"
+      parameters:
+      - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/parameters/XPageFirstUuid"
+      - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/parameters/XPageLimit"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                accountsList:
+                  type: array
+                  description: "List of requested accounts"
+                  items:
+                    type: string
+                    description: "Account uuid"
+                    format: uuid
+                  minItems: 1
+                  maxItems: 200
+      responses:
+        200:
+          description: "Success"
+          headers:
+            X-Page-First-Uuid:
+              $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/headers/X-Page-First-Uuid"
+            X-Page-Limit:
+              $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/headers/X-Page-Limit"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LedgerAccountData"
+        422:
+          description: "Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+
+  /v1/gl/accounts:
+    post:
+      tags:
+      - "GL API"
+      summary: "Open new accounts in the ledger"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                accounts:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/LedgerAccountRequest"
+      responses:
+        201:
+          description: "Ledger accounts have been successfully opened"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LedgerAccountData"
+        422:
+          description: "Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+
+  /v1/gl/accounts/{accountUuid}/preauths:
+    parameters:
+    - $ref: "#/components/parameters/AccountUuid"
+    get:
+      tags:
+      - "GL API"
+      summary: "List of actual preauthorizations made for a particular account"
+      parameters:
+      - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/parameters/XPageFirstUuid"
+      - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/parameters/XPageLimit"
+      responses:
+        200:
+          description: "Success"
+          headers:
+            X-Page-First-Uuid:
+              $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/headers/X-Page-First-Uuid"
+            X-Page-Limit:
+              $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/headers/X-Page-Limit"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  preauths:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PreauthData"
+        422:
+          description: "Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+    post:
+      tags:
+      - "GL API"
+      summary: "Make a preathorization"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreauthRequest"
+      responses:
+        201:
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreauthData"
+        422:
+          description: "Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+
+  /v1/gl/accounts/{accountUuid}/postings:
+    parameters:
+    - $ref: "#/components/parameters/AccountUuid"
+    get:
+      tags:
+      - "GL API"
+      summary: "List of postings that debit or credit a particular account in a particular period"
+      parameters:
+      - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/parameters/XPageFirstUuid"
+      - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/parameters/XPageLimit"
+      responses:
+        200:
+          description: "Success"
+          headers:
+            X-Page-First-Uuid:
+              $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/headers/X-Page-First-Uuid"
+            X-Page-Limit:
+              $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/headers/X-Page-Limit"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  postings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PostingData"
+        422:
+          description: "Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+    post:
+      tags:
+      - "GL API"
+      summary: "Post transactions"
+      requestBody:
+        content:
+          application/json:
+            schema:
+                type: object
+                properties:
+                  postings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PostingRequest"
+      responses:
+        201:
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  postings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PostingData"
+        422:
+          description: "Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+
+  /v1/gl/accounts/{accountUuid}/statement:
+    parameters:
+    - $ref: "#/components/parameters/AccountUuid"
+    - name: "firstDay"
+      in: query
+      description: "First day of statement period"
+      required: true
+      schema:
+        type: string
+        format: date
+    - name: "lastDay"
+      in: query
+      description: "Last day of statement period"
+      required: true
+      schema:
+        type: string
+        format: date
+    get:
+      tags:
+      - "GL API"
+      summary: "Get an account statement for the account"
+      responses:
+        200:
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                properties:
+                  account:
+                    allOf:
+                    - $ref: "#/components/schemas/LedgerAccountData"
+                    description: "Original account data"
+                  firstDay:
+                    type: string
+                    format: date
+                    description: "Account statement period first day date"
+                  lastDay:
+                    type: string
+                    format: date
+                    description: "Account statement period last day date"
+                  openBalance:
+                    type: number
+                    description: "First day morning (open) balance in account currency"
+                  closedBalance:
+                    type: number
+                    description: "Last day evening (closed) balance in account currency"
+                  turnovers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TurnoverData"
+        422:
+          description: "Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+
+  /v1/gl/balance-sheet:
+    parameters:
+    - name: "onDate"
+      in: query
+      description: "Balance sheet report date (operational day)"
+      required: true
+      schema:
+        type: string
+        format: date
+    get:
+      tags:
+      - "GL API"
+      summary: "Balance sheet"
+      responses:
+        200:
+          description: "Success"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balanceSheet:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BalanceSheetRowData"
+        422:
+          description: "Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+
+  /v1/providers/{providerUuid}/transfers/incoming:
+    parameters:
+      - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/parameters/ProviderUuid"
+    post:
+      tags:
+        - "Providers API"
+      summary: "Receiving funds for a client"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IncomingTransferRequest'
+      responses:
+        202:
+          description: "Transfer has been accepted"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/schemas/TransactionData"
+        422:
+          description: "Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+
+  /v1/aml/transactions/{transactionUuid}/approvals:
+    parameters:
+      - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/parameters/TransactionUuid"
+    post:
+      tags:
+        - "AML API"
+      summary: "Approve the transaction by AML (async mode)"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refId:
+                  type: string
+                  description: "ID of AML side decision"
+      responses:
+        202:
+          description: "Transfer has been approved"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/schemas/TransactionData"
+        422:
+          description: "Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+
+  /v1/aml/transactions/{transactionUuid}/declines:
+    parameters:
+      - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/parameters/TransactionUuid"
+    post:
+      tags:
+        - "AML API"
+      summary: "Decline the transaction by AML (async mode)"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refId:
+                  type: string
+                  description: "ID of AML side decision"
+      responses:
+        202:
+          description: "Transfer has been declined"
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/schemas/TransactionData"
+        422:
+          description: "Error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Errors"
+
+components:
+  schemas:
+
+    LedgerAccountRequest:
+      type: object
+      description: "Request for opening a new ledger account"
+      required:
+        - clientUuid
+        - balanceAccount
+        - currencyCode
+      properties:
+        clientUuid:
+          type: string
+          description: "UUID of account owner"
+        balanceAccount:
+          type: string
+          description: "The balance account the new ledger account has to be opened with"
+        accountNumberSize:
+          type: number
+          description: "Total number of ledger account number digits, including the check digit"
+        currencyCode:
+          type: string
+          description: "ISO 4217 alpha-3 currency code of the account"
+          allOf:
+            - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/schemas/Currency"
+        openedOn:
+          type: string
+          format: date
+          description: "The day which the account started to work"
+        accountName:
+          type: string
+          description: "The name of the account"
+
+    LedgerAccountType:
+      type: string
+      description: "Type of ledger account"
+      enum:
+        - DEBIT
+        - CREDIT
+        - NATURAL
+
+    LedgerAccountData:
+      type: object
+      description: "Existing ledger account"
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: "UUID of the account"
+        clientUuid:
+          type: string
+          format: uuid
+          description: "UUID of account owner"
+        accountType:
+          allOf:
+          - $ref: "#/components/schemas/LedgerAccountType"
+        accountNumber:
+          type: string
+          description: "Ledger account number"
+        currencyCode:
+          type: string
+          description: "ISO 4217 alpha-3 currency code of the account"
+          allOf:
+            - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/schemas/Currency"
+        accountName:
+          type: string
+          description: "The name of the account"
+        balance:
+          type: number
+          description: "Account balance (account currency)"
+        base_balance:
+          type: number
+          description: "Account balance (balance currency)"
+        debitHold:
+          type: string
+          description: "Amount of funds frozen for future withdrawal"
+        creditHold:
+          type: string
+          description: "Amount of funds expected to be enrolled"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2021-12-31T23:59:59.999999"
+          description: "The timestamp of the account record was created"
+        openedOn:
+          type: string
+          format: date
+          description: "The day which the account started to work"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2021-12-31T23:59:59.999999"
+          description: "The timestamp of last updated the account information"
+
+    PreauthRequest:
+      type: object
+      description: "Preauth request"
+      required:
+      - preauthType
+      - expiredAt
+      - amount
+      properties:
+        preauthType:
+          type: string
+          description: "Type of preauth"
+          enum:
+          - DEBIT
+          - CREDIT
+        expiredAt:
+          type: string
+          format: date-time
+          example: "2021-12-31T23:59:59.999999"
+          description: "The moment after which the preauth will expired"
+        amount:
+          type: number
+          description: "Amount of preauthentication, always positive"
+
+    PreauthData:
+      type: object
+      description: "Preauth data"
+      required:
+      - uuid
+      - createdAt
+      allOf:
+      - $ref: "#/components/schemas/PreauthRequest"
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: "Preauth uuid"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2021-12-31T23:59:59.999999"
+          description: "The moment which the preauth was created at"
+
+    PostingCommon:
+      type: object
+      description: "Common items of posting request and response data"
+      required:
+        - amount
+        - baseAmount
+        - postedOn
+        - valueOn
+      properties:
+        amount:
+          type: number
+          description: "Amount of funds (account currency) that has to be transferred from debit account to credit"
+        baseAmount:
+          type: number
+          description: "Amount of funds (balance currency) that has to be transferred from debit account to credit"
+        descr:
+          type: string
+          description: "Posting description"
+        postedOn:
+          type: string
+          format: date
+          description: "Operational date that the posting has to be registered on"
+        valueOn:
+          type: string
+          format: date
+          description: "The date since that the accounts balances have to be changed"
+        preauthUuid:
+          type: string
+          format: uuid
+          description: "UUID of the preauth used to transfer funds"
+        enforced:
+          type: boolean
+          default: false
+          description: "Enforced mode"
+
+    PostingRequest:
+      type: object
+      description: "Ledger posting request"
+      allOf:
+      - $ref: "#/components/schemas/PostingCommon"
+      required:
+      - debitUuid
+      - creditUuid
+      properties:
+        debitUuid:
+          type: string
+          format: uuid
+          description: "UUID of debit account"
+        creditUuid:
+          type: string
+          format: uuid
+          description: "UUID of credit account"
+
+    PostingData:
+      type: object
+      description: "Ledger posting data"
+      allOf:
+      - $ref: "#/components/schemas/PostingCommon"
+      required:
+      - uuid
+      - createdAt
+      - debitAccountNumber
+      - debitCurrencyCode
+      - creditAccountNumber
+      - creditCurrencyCode
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: "UUID of the posting"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2021-12-31T23:59:59.999999"
+          description: "Moment which the posting was created at"
+        correspondingAccountUuid:
+          type: string
+          format: uuid
+          description: "Corresponding account UUID"
+        currencyCode:
+          type: string
+          description: "ISO 4217 alpha-3 currency code associated with debit account"
+          allOf:
+            - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/schemas/Currency"
+
+    TurnoverData:
+      type: object
+      description: "Account turnover data"
+      required:
+      - account
+      - posting
+      - subTotal
+      properties:
+        order:
+          type: number
+          description: "Turnover row number"
+        correspondingAccount:
+          allOf:
+          - $ref: "#/components/schemas/LedgerAccountData"
+        posting:
+          allOf:
+          - $ref: "#/components/schemas/PostingData"
+        subTotal:
+          type: number
+          description: "Subtotal"
+
+    BalanceSheetRowData:
+      type: object
+      description: "One row of Balance sheet"
+      required:
+      - numCode
+      - name
+      - subtotals
+      - baseSubtotal
+      properties:
+        numCode:
+          type: string
+          description: "Number of a part of a balance account"
+        name:
+          type: string
+          description: "Name of a part of a balance account"
+        accountType:
+          allOf:
+          - $ref: "#/components/schemas/LedgerAccountType"
+        subtotals:
+          type: array
+          description: "Subtotals in account currency, except balance currency"
+          items:
+            type: object
+            properties:
+              currencyCode:
+                type: string
+                description: "ISO 4217 alpha-3 currency code"
+                allOf:
+                  - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/schemas/Currency"
+              subtotal:
+                type: number
+                description: "Subtotal of a balance account"
+        baseSubtotal:
+          type: number
+          description: "Subtotal in balance currency"
+        children:
+          type: array
+          description: "Component rows"
+          items:
+            $ref: "#/components/schemas/BalanceSheetRowData"
+      example:
+        numCode: "1"
+        name: "DEBIT"
+        subtotals: [
+          {
+            currencyCode: "USD",
+            subtotal: 10000.55
+          }
+          ]
+        baseSubtotal: 8100.33
+        children: [
+          {
+            numCode: "11",
+            name: "FUNDS in other banks",
+            subtotals: [
+              {
+                currencyCode: "USD",
+                subtotal: 6000.55
+              }
+              ],
+            baseSubtotal: 300.33
+          },
+          {
+            numCode: "11",
+            name: "FUNDS in other banks",
+            subtotals: [
+              {
+                currencyCode: "USD",
+                subtotal: 4000.00
+              }
+              ],
+            baseSubtotal: 200.00
+          }
+          ]
+
+    Errors:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: 'https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/schemas/Error'
+
+    IncomingTransferRequest:
+      type: object
+      description: "Incoming transfer request"
+      required:
+        - transactionUuid
+        - num
+        - payeeNum
+        - currencyCode
+        - amount
+        - descr
+      properties:
+        transactionUuid:
+          type: string
+          format: uuid
+          description: "UUID of the transaction (to make API idempotent)"
+        num:
+          type: string
+          description: "IBAN or Ledger account number or Card number"
+        currencyCode:
+          type: string
+          description: "ISO 4217 alpha-3 currency code (correspondent side currency)"
+          allOf:
+            - $ref: "https://api.dev.zaptain.com/core-banking-online-banking/v3/api-docs#/components/schemas/Currency"
+        amount:
+          type: number
+          description: "Amount of the transaction (correspondent side)"
+        payeeName:
+          type: string
+          description: "Payee name"
+        payerName:
+          type: string
+          description: "Payer name"
+        descr:
+          type: string
+          description: "Description of the transfer"
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+
+  parameters:
+
+    AccountUuid:
+      name: "accountUuid"
+      in: path
+      description: "UUID of the account"
+      required: true
+      schema:
+        type: string

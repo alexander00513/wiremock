@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/hello?q=1"
+  },
+  "response": {
+    "status": 200,
+    "bodyFileName": "hello.json"
+  },
+  "postServeActions" : [{
+    "name" : "webhook",
+    "parameters" : {
+      "method": "GET",
+      "url" : "{{originalRequest.baseUrl}}/hello1"
+    }
+  }]
+}
